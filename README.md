@@ -4,7 +4,7 @@ An interactive, production-ready web application built to parse structural text 
 
 Developed explicitly to solve a real-world problem for small business owners and engineering students in India by breaking down complex English documentation into clear corporate English, Hindi, or conversational Hinglish based on user preference.
 
-🔗 **Live Application Link:** https://streamlit.app
+🔗 **Live Application Link:** https://docusense-ai-hhh8klvbfuezfcdwxk9be8.streamlit.app/
 
 ---
 
