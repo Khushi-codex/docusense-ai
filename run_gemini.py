@@ -1,25 +1,25 @@
 import streamlit as st
 from groq import Groq
-import numpy as np
-from pypdf import PdfReader
 import re
+from pypdf import PdfReader
 
+# Set up clean layout configurations
 st.set_page_config(page_title="DocuSense AI", page_icon="📄", layout="wide")
 st.title("💼 DocuSense AI – Regional Multi-Document Assistant")
 st.write("Upload any research paper, report, or resume. Get lightning-fast structural insights in English, Hindi, or Hinglish.")
 
-# Initialize Groq Client safely
+# Initialize the Groq Cloud Developer API Client securely
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception:
     st.error("🔑 Missing GROQ_API_KEY in Streamlit Secrets!")
 
-# File uploader
+# File uploader UI element
 uploaded_file = st.file_uploader("Upload Document (.pdf, .txt):", type=["pdf", "txt"])
 
-# Simple, ultra-fast vector search system built directly in python (No heavy installations needed)
 def clean_and_split_text(text, chunk_size=800):
-    text = re.sub(r'\s+', ' ', text) # Clean messy PDF whitespaces
+    """Cleans messy whitespaces and splits text into structured paragraphs."""
+    text = re.sub(r'\s+', ' ', text)
     words = text.split()
     chunks = []
     for i in range(0, len(words), chunk_size):
@@ -29,18 +29,18 @@ def clean_and_split_text(text, chunk_size=800):
     return chunks
 
 def keyword_relevance_score(chunk, query):
-    """Calculates rapid relevance matching to simulate an embedding search instantly."""
+    """Calculates keyword matching score to find the most relevant document sections."""
     query_words = set(query.lower().split())
     chunk_words = chunk.lower()
     score = sum(1 for word in query_words if word in chunk_words)
     return score
 
 if uploaded_file is not None:
-    # Read text using clean buffering
     with st.spinner("Parsing document structure layout..."):
         file_type = uploaded_file.name.split(".")[-1].lower()
         document_text = ""
         
+        # Parse text based on document format
         if file_type == "pdf":
             reader = PdfReader(uploaded_file)
             for page in reader.pages:
@@ -52,20 +52,23 @@ if uploaded_file is not None:
 
     if document_text.strip():
         st.success(f"✅ {uploaded_file.name} successfully indexed into local knowledge database!")
-        
-        # Prepare text database chunks
         document_chunks = clean_and_split_text(document_text)
         
-        user_input = st.text_input("Ask anything about this document:", placeholder="e.g., Explain the core methodology or summarize in 5 key bullet points.")
+        user_input = st.text_input(
+            "Ask anything about this document:", 
+            placeholder="e.g., Explain the core methodology or summarize in 5 key bullet points."
+        )
         
         if st.button("Query Knowledge Base") or user_input:
             if user_input.strip():
                 with st.spinner("Querying vector index & generating localized response..."):
-                    # Find the top relevant text chunks matching the user's specific query
+                    # Calculate relevance for each section block
                     scored_chunks = [(chunk, keyword_relevance_score(chunk, user_input)) for chunk in document_chunks]
+                    
+                    # Corrected sorting syntax to sort strictly by score matching element [1]
                     scored_chunks.sort(key=lambda x: x[1], reverse=True)
                     
-                    # Pull only the top 3 highly relevant context paragraphs (Guarantees no 413 Token Limit crash)
+                    # Pull only top 3 highly relevant paragraphs to bypass the 7,000 ITPM constraint
                     top_context = "\n\n".join([item[0] for item in scored_chunks[:3]])
                     
                     system_rules = (
@@ -95,4 +98,3 @@ if uploaded_file is not None:
                         st.error(f"Engine Timeout or Connection Error: {e}")
             else:
                 st.warning("Please type a valid question to query the document.")
-
