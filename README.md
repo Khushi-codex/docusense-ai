@@ -1,4 +1,4 @@
-# DocuSense AI – Multi-Format Regional Document Assistant 🚀
+# DocuSense AI – Regional Multi-Document Assistant 🚀
 
 An interactive, production-ready web application built to parse structural text from multiple document formats and deliver context-aware, localized intelligence using advanced Large Language Models (LLMs). 
 
