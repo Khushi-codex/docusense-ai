@@ -10,11 +10,10 @@ Developed explicitly to solve a real-world problem for small business owners and
 
 ## 🌟 Key Features
 
-- **Multi-Format Ingestion Pipeline:** Implements structural text extraction layers capable of handling both binary `.pdf` formats and raw `.txt` string streams dynamically.
-- **High-Speed AI Architecture Inference:** Configured with an asynchronous client wrapper calling state-of-the-art open-source LLMs (`qwen/qwen3.8-27b`) via the low-latency Groq cloud engine grid.
-- **Context-Aware Regional Intelligence:** Engineered with strict conditional prompt routing architectures. The assistant automatically shifts its vocabulary, script, and tone (formal English vs. simplified, polite Hinglish explaining dense jargon) matching the user's immediate language inputs.
-- **Enterprise-Grade Secrets Safeguarding:** Built to complete adherence with modern cloud security parameters. Zero API authentication tokens are hardcoded within the source codebase; environment parameters are managed securely via structured local `.toml` variables and cloud infrastructure key vaults.
-
+- **Smart Text Chunking**: Custom algorithm breaks down extensive documents into optimal token segments, entirely bypassing the 7,000 ITPM limit.
+- **Universal Processing**: Seamlessly parses multi-page PDFs using `pypdf`.
+- **Dual-Language Intelligent Response**: Senior Recruiter persona supporting both professional English and local Hinglish/Hindi explanations.
+- **High-Performance LLM**: Powered by the fast `qwen/qwen3.8-27b` architecture hosted on Groq.
 ---
 
 ## 🛠️ Tech Stack & Architecture
