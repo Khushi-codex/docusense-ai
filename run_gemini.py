@@ -1,6 +1,7 @@
 import streamlit as st
-from groq import Groq  # <-- Upgraded engine library
+from groq import Groq
 from pypdf import PdfReader
+import concurrent.futures  # <-- Added for high-speed parallel processing
 
 st.set_page_config(page_title="AI Document Assistant", page_icon="📄")
 st.title("💼 AI Multi-Document Assistant")
@@ -28,16 +29,13 @@ if uploaded_file is not None:
 user_input = st.text_input("Ask a question about the document:", placeholder="e.g., Is this resume good for off-campus?")
 submit_button = st.button("Analyze Document")
 
-# --- HELPER FUNCTION FOR CHUNKING LARGE TEXT ---
 def split_text_into_chunks(text, max_chars=12000):
-    """Splits text into smaller segments to safely stay under the 7,000 ITPM limit."""
     words = text.split()
     chunks = []
     current_chunk = []
     current_length = 0
     
     for word in words:
-        # Approximate character count check
         if current_length + len(word) + 1 > max_chars:
             chunks.append(" ".join(current_chunk))
             current_chunk = [word]
@@ -50,12 +48,25 @@ def split_text_into_chunks(text, max_chars=12000):
         chunks.append(" ".join(current_chunk))
     return chunks
 
+# --- HELPER FUNCTION FOR A SINGLE API CALL ---
+def process_single_chunk(client, chunk, idx, total_chunks, system_rules, user_input):
+    chunk_prompt = f"Context Document (Part {idx+1}/{total_chunks}):\n{chunk}\n\nUser Question: {user_input}"
+    try:
+        completion = client.chat.completions.create(
+            model="qwen/qwen3.8-27b",
+            messages=[
+                {"role": "system", "content": system_rules},
+                {"role": "user", "content": chunk_prompt}
+            ],
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        return f"[Error processing section {idx+1}: {e}]"
 
 if submit_button:
     if extracted_text or user_input:
-        with st.spinner("Analyzing document with high-speed engine safely..."):
+        with st.spinner("Analyzing all document sections simultaneously..."):
             try:
-                # Initialize the Groq client with your key
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
                 system_rules = (
@@ -66,22 +77,16 @@ if submit_button:
                     "Maintain a helpful, highly polished, and professional tone at all times. Do not use overly casual slang like 'bhai'."
                 )
                 
-                # Split your text into safe chunks (~3,000 tokens per chunk)
                 text_chunks = split_text_into_chunks(extracted_text)
-                chunk_replies = []
                 
-                # Send chunks sequentially so it never drops a 413 error
-                for idx, chunk in enumerate(text_chunks):
-                    chunk_prompt = f"Context Document (Part {idx+1}/{len(text_chunks)}):\n{chunk}\n\nUser Question: {user_input}"
-                    
-                    completion = client.chat.completions.create(
-                        model="qwen/qwen3.8-27b",
-                        messages=[
-                            {"role": "system", "content": system_rules},
-                            {"role": "user", "content": chunk_prompt}
-                        ],
-                    )
-                    chunk_replies.append(completion.choices[0].message.content)
+                # --- FAST PARALLEL EXECUTION ---
+                # This executes all chunks at the exact same time instead of waiting in line
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    futures = [
+                        executor.submit(process_single_chunk, client, chunk, idx, len(text_chunks), system_rules, user_input)
+                        for idx, chunk in enumerate(text_chunks)
+                    ]
+                    chunk_replies = [future.result() for future in futures]
                 
                 # Synthesize the partial answers into a unified final answer
                 synthesis_prompt = (
